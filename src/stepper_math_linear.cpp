@@ -34,7 +34,7 @@
  * Скорость задаём целым числом как <единица измерения координаты мотора> в секунду.
  * 
  * Допустим, шаг мотора (distance_per_step) - 7500 нанометров,
- * минимальная задержка между шагами (pulse_delay) - 1000микросекунд (1 миллисекунда).
+ * минимальная задержка между шагами (step_delay) - 1000микросекунд (1 миллисекунда).
  * 
  * Максимальное значение скорости получаем
  * 7500 нанометров в миллисекунду = 7500000 нанометров в секунду (параметр spd).
@@ -58,7 +58,7 @@ int prepare_line(stepper *sm, long dl, unsigned long spd) {
         Serial.print("prepare line:");
         Serial.print(sm->name);
         Serial.print("1=");
-        Serial.print(sm->current_pos/1000000, DEC);
+        //Serial.print(sm->current_pos/1000000, DEC);
         Serial.print("um, ");
         Serial.print(sm->name);
         Serial.print("2=");
@@ -83,19 +83,19 @@ int prepare_line(stepper *sm, long dl, unsigned long spd) {
     
     // максимальная скорость, расстояние в секунду:
     // длина шага делить на минимальную задержку между шагами.
-    // sm->pulse_delay - мкс, нужно конвертировать в секунды.
+    // sm->step_delay - мкс, нужно конвертировать в секунды.
     // Очевидный способ - умножить делимое расстояние на 1млн,
     // а потом делить на микросекунды:
-    // unsigned long max_spd = sm->distance_per_step * 1000000 / sm->pulse_delay;
+    // unsigned long max_spd = sm->distance_per_step * 1000000 / sm->step_delay;
     // проблема в том, что если значение distance_per_step больше, чем ~4300,
     // при умножении на 1000000 промежуточный результат выйдет за верхнуюю границу
     // 32битного unsigned long=2^32=4294967296
     // 
-    // С другой стороны, если значение pulse_delay=1000микросекунд (обычно это так и будет),
+    // С другой стороны, если значение step_delay=1000микросекунд (обычно это так и будет),
     // а значение distance_per_step содержит часть, меньше 1000 (например, 7500), то
-    // если сначала поделить distance_per_step на pulse_delay, а потом умножить
+    // если сначала поделить distance_per_step на step_delay, а потом умножить
     // результат на 1млн:
-    // unsigned long max_spd = (sm->distance_per_step / sm->pulse_delay) * 1000000;
+    // unsigned long max_spd = (sm->distance_per_step / sm->step_delay) * 1000000;
     // мы потеряем часть distance_per_step на операции промежуточного округления
     // (не смертельно, т.к. значение будет в любом случае меньше, чем реальная
     // максимальная скорость, но все равно не очень приятно, т.к. потом
@@ -103,12 +103,12 @@ int prepare_line(stepper *sm, long dl, unsigned long spd) {
     // 
     // Компромиссный хитрый вариант - сначала умножить расстояние на 1000,
     // потом поделить на время а потом результат умножить еще раз на 1000.
-    // Например: distance_per_step = 7500нм, pulse_delay=1000млс
+    // Например: distance_per_step = 7500нм, step_delay=1000млс
     // 1) 7500*1000=7500000 (умещаемся в unsigned long), 
     // 2) 7500000/1000=7500 (не потеряли значимые разряды справа),
     // 3) 7500*1000=7500000 - финальный результат (опять уместились в unsigned long, 
     // при этом не потеряли исходных значимых разрядов)
-    unsigned long max_spd = (sm->distance_per_step * 1000 / sm->pulse_delay) * 1000;
+    unsigned long max_spd = (sm->distance_per_step * 1000 / sm->step_delay) * 1000;
     
     if(spd == 0) {
         // движение с максимальной скоростью
@@ -179,7 +179,7 @@ int prepare_line_2d(stepper *sm1, stepper *sm2, long dl1, long dl2, unsigned lon
         Serial.print(" ");
         Serial.print(sm1->name);
         Serial.print("1=");
-        Serial.print(sm1->current_pos / 1000000, DEC);
+        //Serial.print(sm1->current_pos / 1000000, DEC);
         Serial.print("um, ");
         Serial.print(sm1->name);
         Serial.print("2=");
@@ -187,7 +187,7 @@ int prepare_line_2d(stepper *sm1, stepper *sm2, long dl1, long dl2, unsigned lon
         Serial.print("um; ");
         Serial.print(sm2->name);
         Serial.print("1=");
-        Serial.print(sm2->current_pos / 1000000, DEC);
+        //Serial.print(sm2->current_pos / 1000000, DEC);
         Serial.print("um, ");
         Serial.print(sm2->name);
         Serial.print("2=");
@@ -221,8 +221,8 @@ int prepare_line_2d(stepper *sm1, stepper *sm2, long dl1, long dl2, unsigned lon
     #endif // DEBUG_SERIAL
     
     // максимальная скорость
-    unsigned long max_spd_sm1 = (sm1->distance_per_step * 1000 / sm1->pulse_delay) * 1000;
-    unsigned long max_spd_sm2 = (sm2->distance_per_step * 1000 / sm2->pulse_delay) * 1000;
+    unsigned long max_spd_sm1 = (sm1->distance_per_step * 1000 / sm1->step_delay) * 1000;
+    unsigned long max_spd_sm2 = (sm2->distance_per_step * 1000 / sm2->step_delay) * 1000;
     // максимальная скорость - меньшая из максимальных
     unsigned long max_spd = max_spd_sm1 < max_spd_sm2 ? max_spd_sm1 : max_spd_sm2;
     if(spd == 0) {
